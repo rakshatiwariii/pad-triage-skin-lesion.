@@ -3,14 +3,6 @@
 # Research Prototype | Transparent AI for Clinical Decision Support
 # Veritas AI International High School Hackathon Submission
 # ==========================================================
-import subprocess
-import sys
-import os
-# ==========================================================
-# PAD-Triage: Multimodal Skin Lesion Screening System
-# Research Prototype | Transparent AI for Clinical Decision Support
-# ==========================================================
-import streamlit as st
 import torch
 import torch.nn as nn
 import torchvision.models as models
@@ -20,28 +12,6 @@ import numpy as np
 from sklearn.model_selection import GroupShuffleSplit
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, recall_score, roc_auc_score
-from PIL import Image, ImageStat
-from datetime import datetime
-
-# 1. Automated Dependency Verification & Installation
-packages = ["scikit-learn", "torch", "torchvision", "pandas", "numpy", "gradio", "pillow", "matplotlib"]
-for pkg in packages:
-    try:
-        __import__(pkg if pkg != "scikit-learn" else "sklearn")
-    except ImportError:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", pkg])
-
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torchvision.models as models
-from torchvision import transforms
-from torch.utils.data import Dataset, DataLoader
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import GroupShuffleSplit
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix
 import gradio as gr
 from PIL import Image, ImageStat
 from datetime import datetime
@@ -50,7 +20,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"[INIT] Running on Device: {device}")
 
 # ==========================================================
-# 2. DATASET SIMULATION & PATIENT-LEVEL SPLIT (PAD-UFES-20 Provenance)
+# 1. DATASET SIMULATION & PATIENT-LEVEL SPLIT (PAD-UFES-20 Provenance)
 # ==========================================================
 np.random.seed(42)
 n_samples = 2298
@@ -82,24 +52,22 @@ baseline_sens = recall_score(df_test['is_malignant'], y_pred_tab, zero_division=
 baseline_spec = recall_score(df_test['is_malignant'], y_pred_tab, pos_label=0, zero_division=0)
 
 # ==========================================================
-# 3. GENUINE MULTIMODAL NEURAL ARCHITECTURE (ResNet-50 + Clinical Branch)
+# 2. GENUINE MULTIMODAL NEURAL ARCHITECTURE (ResNet-50 + Clinical Branch)
 # ==========================================================
 class MultimodalFusionNet(nn.Module):
-    def __init__(self, clinical_dim=8): # age, d1, d2 + 5 ABCDE binary flags
+    def __init__(self, clinical_dim=8):
         super().__init__()
         weights = models.ResNet50_Weights.DEFAULT
         self.resnet = models.resnet50(weights=weights)
         num_ftrs = self.resnet.fc.in_features
-        self.resnet.fc = nn.Identity() # Freeze/Extract visual embeddings (2048 dims)
+        self.resnet.fc = nn.Identity()
         
-        # Clinical feature encoding branch
         self.clinical_branch = nn.Sequential(
             nn.Linear(clinical_dim, 32),
             nn.ReLU(),
             nn.Dropout(0.2)
         )
         
-        # Multimodal Fusion & Classification Head
         self.fusion_head = nn.Sequential(
             nn.Linear(num_ftrs + 32, 128),
             nn.ReLU(),
@@ -126,7 +94,7 @@ model.eval()
 print("[INIT] Multimodal Neural Architecture initialized successfully.")
 
 # ==========================================================
-# 4. MODULE A: CLINICAL SCREENING & IMAGE QUALITY ASSESSMENT
+# 3. MODULE A: CLINICAL SCREENING & IMAGE QUALITY ASSESSMENT
 # ==========================================================
 def assess_image_quality(image):
     if image is None:
@@ -161,7 +129,6 @@ def run_clinical_screening(image, age, d1, d2, asym, border, color, diam_flag, e
 
     img_tensor = transform(image).unsqueeze(0).to(device)
     
-    # Clinical vector: [age, d1, d2, asym, border, color, diam_flag, evolving]
     abcde_vec = [
         float(1 if asym else 0),
         float(1 if border else 0),
@@ -175,14 +142,12 @@ def run_clinical_screening(image, age, d1, d2, asym, border, color, diam_flag, e
     with torch.no_grad():
         model_prob = model(img_tensor, clin_tensor).item()
 
-    # Heuristic risk calculation combining model embedding & ABCDE clinical rules
     abcde_score = sum(abcde_vec) * 0.15
     age_score = 0.10 if age > 50 else 0.0
     size_score = 0.15 if (d1 > 6.0 or d2 > 6.0) else 0.0
     
     final_score = min(max(model_prob * 0.4 + abcde_score + age_score + size_score, 0.05), 0.95)
 
-    # Calibrated Screening Tiers (Transparent Risk Indication, NO exact cancer % claims)
     if final_score >= 0.55:
         tier = "🔴 HIGH SCREENING PRIORITY"
         recommendation = "Urgent clinical evaluation recommended. Schedule an appointment with a board-certified dermatologist within 48–72 hours for dermoscopic examination and potential biopsy consideration."
@@ -193,7 +158,6 @@ def run_clinical_screening(image, age, d1, d2, asym, border, color, diam_flag, e
         tier = "🟢 LOW SCREENING PRIORITY"
         recommendation = "Routine annual skin check advised. Standard presentation observed; however, persistent or changing lesions always warrant professional assessment."
 
-    # Feature Contribution Breakdown for Explainability
     contributions = []
     if age > 50: contributions.append("• Patient Age > 50 (+10% clinical weighting)")
     if d1 > 6.0 or d2 > 6.0: contributions.append("• Diameter > 6.0 mm (D-Criterion activated)")
@@ -228,7 +192,7 @@ def run_clinical_screening(image, age, d1, d2, asym, border, color, diam_flag, e
     return tier, quality_msg, recommendation, report, report_filename
 
 # ==========================================================
-# 5. MODULE B: LONGITUDINAL TRACKING (Stateful Session Storage)
+# 4. MODULE B: LONGITUDINAL TRACKING (Stateful Session Storage)
 # ==========================================================
 tracking_history = []
 
@@ -244,7 +208,6 @@ def log_lesion_record(patient_id, date_str, size, notes):
     tracking_history.append(record)
     df_history = pd.DataFrame(tracking_history)
     
-    # Growth velocity calculation if multiple records exist
     analysis = "ℹ️ Baseline record established. Log subsequent records to evaluate longitudinal growth velocity."
     patient_records = [r for r in tracking_history if r["Patient ID"] == patient_id]
     if len(patient_records) > 1:
@@ -259,9 +222,8 @@ def log_lesion_record(patient_id, date_str, size, notes):
     return df_history, analysis
 
 # ==========================================================
-# 6. MODULE C: MODEL VALIDATION & EVIDENCE DASHBOARD
+# 5. MODULE C: MODEL VALIDATION & EVIDENCE DASHBOARD
 # ==========================================================
-# Verified dataset and benchmark statistics
 metrics_summary = f"""
 ### 📊 Rigorous Model Validation & Performance Evidence
 * **Dataset Provenance:** PAD-UFES-20 (2,298 dermoscopic and clinical images across 1,373 patients).
@@ -299,7 +261,7 @@ def generate_validation_export():
     return fn
 
 # ==========================================================
-# 7. PROFESSIONAL GRADIO RESEARCH DASHBOARD UI
+# 6. PROFESSIONAL GRADIO RESEARCH DASHBOARD UI
 # ==========================================================
 with gr.Blocks(theme=gr.themes.Soft()) as demo:
     gr.Markdown("# 🩺 PAD-Triage: Multimodal Skin Lesion Screening System")
