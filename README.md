@@ -1,8 +1,7 @@
 # PAD-Triage: Multimodal Smartphone Skin Lesion Screening
 
 **Track:** AI + Health  
-**Team:** [Insert Team Member Names]  
-
+**Team:(SOLO)** Raksha Tiwari 
 ## The problem
 Primary care physicians, rural clinics, and community health workers face massive patient backlogs and lack immediate access to dermatologists, leading to delayed diagnoses of malignant skin lesions like melanoma and basal cell carcinoma. When early-stage skin cancers are missed due to triage delays, patient survival outcomes drop significantly.
 
@@ -32,4 +31,5 @@ An end-to-end multimodal AI triage system that takes a smartphone image of a ski
 ## Sources
 * PAD-UFES-20 Dataset (Mendeley Data): https://data.mendeley.com/datasets/zr7vgbcyr2/1
 * PyTorch & Torchvision Pretrained Models: https://pytorch.org
-* Gradio UI Framework: https://gradio.app
+* Gradio UI Framework: https://fafbf82d40a4e00b17.gradio.live
+* Streamlit : https://pad-triage-skin-lesion-b5hcvr8ygqp53jbtzlmq6o.streamlit.app/
