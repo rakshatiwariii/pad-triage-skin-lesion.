@@ -6,6 +6,22 @@
 import subprocess
 import sys
 import os
+# ==========================================================
+# PAD-Triage: Multimodal Skin Lesion Screening System
+# Research Prototype | Transparent AI for Clinical Decision Support
+# ==========================================================
+import streamlit as st
+import torch
+import torch.nn as nn
+import torchvision.models as models
+from torchvision import transforms
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import GroupShuffleSplit
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, recall_score, roc_auc_score
+from PIL import Image, ImageStat
+from datetime import datetime
 
 # 1. Automated Dependency Verification & Installation
 packages = ["scikit-learn", "torch", "torchvision", "pandas", "numpy", "gradio", "pillow", "matplotlib"]
